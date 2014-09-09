@@ -1,9 +1,9 @@
 {
-    "name": "heer0/git-debug-bundle",
+    "name": "azenet/git-debug-bundle",
     "type": "symfony-bundle",
     "description": "Adds useful Git information to the Symfony2 Debug Toolbar",
     "keywords": ["git", "debug", "toolbar"],
-    "homepage": "https://github.com/Heer0/GitDebugBundle",
+    "homepage": "https://github.com/Azenet/GitDebugBundle",
     "license": "MIT",
     "authors": [
         {
