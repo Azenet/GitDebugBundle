@@ -205,7 +205,11 @@ class GitDataCollector extends DataCollector
         return $refs;
     }
 
-    /**
+	public function getLatestCommit() {
+		return substr(file_get_contents($this->data["git_root"] . '/refs/heads/' . $this->getCurrentBranch()), 0, 8);
+	}
+
+	/**
      * Returns the name of the collector.
      *
      * @return string The collector name
