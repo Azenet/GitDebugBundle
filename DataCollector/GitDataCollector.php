@@ -2,228 +2,217 @@
 
 namespace Leek\GitDebugBundle\DataCollector;
 
-use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 
-class GitDataCollector extends DataCollector
-{
-    /**
-     * @var string
-     */
-    private $gitRootDir;
+class GitDataCollector extends DataCollector {
 
-    /**
-     * @var array
-     */
-    private $refsInfo;
+	/**
+	 * @var string
+	 */
+	private $gitRootDir;
 
-    /**
-     * Constructor
-     *
-     * @param string $kernelRootDir
-     */
-    public function __construct($kernelRootDir)
-    {
-        $this->gitRootDir = realpath($kernelRootDir . '/../.git');
-    }
+	/**
+	 * @var array
+	 */
+	private $refsInfo;
 
-    /**
-     * Collects data for the given Request and Response.
-     *
-     * @param Request    $request   A Request instance
-     * @param Response   $response  A Response instance
-     * @param \Exception $exception An Exception instance
-     */
-    public function collect(Request $request, Response $response, \Exception $exception = null)
-    {
-        $this->data = array(
-            'git_root' => $this->gitRootDir,
-            'branch'   => $this->getCurrentBranch(),
-        );
-    }
+	/**
+	 * Constructor
+	 *
+	 * @param string $kernelRootDir
+	 */
+	public function __construct($kernelRootDir) {
+		$this->gitRootDir = realpath($kernelRootDir . '/../.git');
+	}
 
-    /**
-     * @return string
-     */
-    public function getBranch()
-    {
-        return $this->getCurrentBranch();
-    }
+	/**
+	 * Collects data for the given Request and Response.
+	 *
+	 * @param Request    $request   A Request instance
+	 * @param Response   $response  A Response instance
+	 * @param \Exception $exception An Exception instance
+	 */
+	public function collect(Request $request, Response $response, \Exception $exception = null) {
+		$this->data           = array(
+			'git_root' => $this->gitRootDir
+		);
+		$this->data['branch'] = $this->getCurrentBranch();
+	}
 
-    /**
-     * @return array
-     */
-    public function getBranches()
-    {
-        $branches = array_merge($this->getLocalBranches(), $this->getRefsBranches());
-        $branches = array_unique($branches);
-        return $branches;
-    }
+	/**
+	 * @return string
+	 */
+	public function getBranch() {
+		return $this->getCurrentBranch();
+	}
 
-    /**
-     * @return array
-     */
-    public function getTags()
-    {
-        $tags = array_merge($this->getLocalTags(), $this->getRefsTags());
-        $tags = array_unique($tags);
-        return $tags;
-    }
+	/**
+	 * @return array
+	 */
+	public function getBranches() {
+		$branches = array_merge($this->getLocalBranches(), $this->getRefsBranches());
+		$branches = array_unique($branches);
 
-    /**
-     * @return string
-     */
-    protected function getCurrentBranch()
-    {
-        $headFile = $this->data["git_root"] . '/HEAD';
-        $branch   = null;
+		return $branches;
+	}
 
-        if (file_exists($headFile)) {
-            // Read first line
-            $fileHandle = fopen($headFile, 'r');
-            $firstLine = fgets($fileHandle);
-            fclose($fileHandle);
+	/**
+	 * @return array
+	 */
+	public function getTags() {
+		$tags = array_merge($this->getLocalTags(), $this->getRefsTags());
+		$tags = array_unique($tags);
 
-            // Determine branch name
-            $parsed = explode('/', $firstLine);
-            unset($parsed[0]);
-            unset($parsed[1]);
-            $branch = implode('/', $parsed);
-        }
+		return $tags;
+	}
 
-        return trim($branch);
-    }
+	/**
+	 * @return string
+	 */
+	protected function getCurrentBranch() {
+		$headFile = $this->data["git_root"] . '/HEAD';
+		$branch   = null;
 
-    /**
-     * @return array
-     */
-    protected function getRefsBranches()
-    {
-        $refs     = $this->getRefsInfo();
-        $branches = array();
+		if (file_exists($headFile)) {
+			// Read first line
+			$fileHandle = fopen($headFile, 'r');
+			$firstLine  = fgets($fileHandle);
+			fclose($fileHandle);
 
-        foreach ($refs as $ref) {
-            if (strpos($ref, 'tags') !== false) {
-                continue;
-            }
-            $ref = str_replace('heads/', '', $ref);
-            $branches[] = $ref;
-        }
+			// Determine branch name
+			$parsed = explode('/', $firstLine);
+			unset($parsed[0]);
+			unset($parsed[1]);
+			$branch = implode('/', $parsed);
+		}
 
-        return $branches;
-    }
+		return trim($branch);
+	}
 
-    /**
-     * @return array
-     */
-    protected function getLocalBranches($ref = null)
-    {
-        $branches = array();
-        $base     = $this->data["git_root"] . '/refs/heads';
-        $path     = $base . (!empty($ref) ? "/{$ref}" : '');
-        $files    = glob("{$path}/*");
+	/**
+	 * @return array
+	 */
+	protected function getRefsBranches() {
+		$refs     = $this->getRefsInfo();
+		$branches = array();
 
-        foreach ($files as $file) {
-            $parts = explode('refs/heads/', $file);
-            $name  = $parts[count($parts) - 1];
-            if (is_dir($file)) {
-                $branches = array_merge($branches, $this->getLocalBranches($name));
-            } else {
-                $branches[] = trim($name);
-            }
-        }
+		foreach ($refs as $ref) {
+			if (strpos($ref, 'tags') !== false) {
+				continue;
+			}
+			$ref        = str_replace('heads/', '', $ref);
+			$branches[] = $ref;
+		}
 
-        return $branches;
-    }
+		return $branches;
+	}
 
-    /**
-     * @return array
-     */
-    protected function getRefsTags()
-    {
-        $refs = $this->getRefsInfo();
-        $tags = array();
+	/**
+	 * @return array
+	 */
+	protected function getLocalBranches($ref = null) {
+		$branches = array();
+		$base     = $this->data["git_root"] . '/refs/heads';
+		$path     = $base . (!empty($ref) ? "/{$ref}" : '');
+		$files    = glob("{$path}/*");
 
-        foreach ($refs as $ref) {
-            if (strpos($ref, 'tags') === false) {
-                continue;
-            }
-            $ref = str_replace('tags/', '', $ref);
-            $tags[] = $ref;
-        }
+		foreach ($files as $file) {
+			$parts = explode('refs/heads/', $file);
+			$name  = $parts[count($parts) - 1];
+			if (is_dir($file)) {
+				$branches = array_merge($branches, $this->getLocalBranches($name));
+			} else {
+				$branches[] = trim($name);
+			}
+		}
 
-        return $tags;
-    }
+		return $branches;
+	}
 
-    /**
-     * @return array
-     */
-    protected function getLocalTags($ref = null)
-    {
-        $tags  = array();
-        $base  = $this->data["git_root"] . '/refs/tags';
-        $path  = $base . (!empty($ref) ? "/{$ref}" : '');
-        $files = glob("{$path}/*");
+	/**
+	 * @return array
+	 */
+	protected function getRefsTags() {
+		$refs = $this->getRefsInfo();
+		$tags = array();
 
-        foreach ($files as $file) {
-            $parts = explode('refs/tags/', $file);
-            $name  = $parts[count($parts) - 1];
-            if (is_dir($file)) {
-                $tags = array_merge($tags, $this->getLocalTags($name));
-            } else {
-                $tags[] = trim($name);
-            }
-        }
+		foreach ($refs as $ref) {
+			if (strpos($ref, 'tags') === false) {
+				continue;
+			}
+			$ref    = str_replace('tags/', '', $ref);
+			$tags[] = $ref;
+		}
 
-        return $tags;
-    }
+		return $tags;
+	}
 
-    /**
-     * @return array
-     */
-    protected function getRefsInfo()
-    {
-        if (!empty($this->refsInfo)) {
-            return $this->refsInfo;
-        }
+	/**
+	 * @return array
+	 */
+	protected function getLocalTags($ref = null) {
+		$tags  = array();
+		$base  = $this->data["git_root"] . '/refs/tags';
+		$path  = $base . (!empty($ref) ? "/{$ref}" : '');
+		$files = glob("{$path}/*");
 
-        $refsFile = $this->data["git_root"] . '/packed-refs';
-        $refs     = array();
+		foreach ($files as $file) {
+			$parts = explode('refs/tags/', $file);
+			$name  = $parts[count($parts) - 1];
+			if (is_dir($file)) {
+				$tags = array_merge($tags, $this->getLocalTags($name));
+			} else {
+				$tags[] = trim($name);
+			}
+		}
 
-        if (file_exists($refsFile)) {
-            $fileHandle = fopen($refsFile, 'r');
-            while ($line = fgets($fileHandle)) {
-                $parsed = explode('refs/', $line);
-                if (isset($parsed[1])) {
-                    $refs[] = trim($parsed[1]);
-                }
-            }
-            fclose($fileHandle);
-        }
+		return $tags;
+	}
 
-        return $refs;
-    }
+	/**
+	 * @return array
+	 */
+	protected function getRefsInfo() {
+		if (!empty($this->refsInfo)) {
+			return $this->refsInfo;
+		}
+
+		$refsFile = $this->data["git_root"] . '/packed-refs';
+		$refs     = array();
+
+		if (file_exists($refsFile)) {
+			$fileHandle = fopen($refsFile, 'r');
+			while ($line = fgets($fileHandle)) {
+				$parsed = explode('refs/', $line);
+				if (isset($parsed[1])) {
+					$refs[] = trim($parsed[1]);
+				}
+			}
+			fclose($fileHandle);
+		}
+
+		return $refs;
+	}
 
 	public function getLatestCommit() {
 		return substr(file_get_contents($this->data["git_root"] . '/refs/heads/' . $this->getCurrentBranch()), 0, 8);
 	}
 
 	/**
-     * Returns the name of the collector.
-     *
-     * @return string The collector name
-     */
-    public function getName()
-    {
-        return 'leek_git_debug';
-    }
+	 * Returns the name of the collector.
+	 *
+	 * @return string The collector name
+	 */
+	public function getName() {
+		return 'leek_git_debug';
+	}
 
-    /**
-     * @param \AppKernel $kernel
-     */
-    public function setKernel(\AppKernel $kernel = null)
-    {
-        $this->kernel = $kernel;
-    }
+	/**
+	 * @param \AppKernel $kernel
+	 */
+	public function setKernel(\AppKernel $kernel = null) {
+		$this->kernel = $kernel;
+	}
 }
