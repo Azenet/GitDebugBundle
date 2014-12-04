@@ -26,7 +26,6 @@ class GitDataCollector extends DataCollector
     public function __construct($kernelRootDir)
     {
         $this->gitRootDir = realpath($kernelRootDir . '/../.git');
-		var_dump($kernelRootDir);
     }
 
     /**
